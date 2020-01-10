@@ -1,0 +1,53 @@
+Date: Fri, 25 Jan 2019 09:55:24 -0500
+From: Charles Rose <crose@redhat.com>
+To: rhkernel-list@redhat.com
+Cc: jmoyer@redhat.com, Charles Rose <crose@redhat.com>
+Subject: [RHEL7.6 PATCH 1/2] acpi/nfit: Block function zero DSMs
+
+BZ: 1665811
+Brew: 19955398
+Upstream Status: kernel/git/nvdimm/nvdimm.git
+
+commit 5e9e38d0db1d29efed1dd4cf9a70115d33521be7
+Author: Dan Williams <dan.j.williams@intel.com>
+Date:   Mon Jan 14 14:07:19 2019 -0800
+
+    acpi/nfit: Block function zero DSMs
+
+    In preparation for using function number 0 as an error value, prevent it
+    from being considered a valid function value by acpi_nfit_ctl().
+
+    Cc: <stable@vger.kernel.org>
+    Cc: stuart hayes <stuart.w.hayes@gmail.com>
+    Fixes: e02fb7264d8a ("nfit: add Microsoft NVDIMM DSM command set...")
+    Reported-by: Jeff Moyer <jmoyer@redhat.com>
+    Reviewed-by: Jeff Moyer <jmoyer@redhat.com>
+    Signed-off-by: Dan Williams <dan.j.williams@intel.com>
+
+Signed-off-by: Charles Rose <crose@redhat.com>
+---
+ drivers/acpi/nfit/core.c | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/drivers/acpi/nfit/core.c b/drivers/acpi/nfit/core.c
+index caae28c..61006aea 100644
+--- a/drivers/acpi/nfit/core.c
++++ b/drivers/acpi/nfit/core.c
+@@ -1759,6 +1759,13 @@ static int acpi_nfit_add_dimm(struct acpi_nfit_desc *acpi_desc,
+ 		return 0;
+ 	}
+ 
++	/*
++	 * Function 0 is the command interrogation function, don't
++	 * export it to potential userspace use, and enable it to be
++	 * used as an error value in acpi_nfit_ctl().
++	 */
++	dsm_mask &= ~1UL;
++
+ 	guid = to_nfit_uuid(nfit_mem->family);
+ 	for_each_set_bit(i, &dsm_mask, BITS_PER_LONG)
+ 		if (acpi_check_dsm(adev_dimm->handle, guid->b,
+-- 
+1.8.3.1
+
+
